@@ -1,0 +1,18 @@
+/* subtle font smoothing and nicer body fallback */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* table layout niceties */
+table th, table td {
+  vertical-align: top;
+}
+
+/* responsive tweak: make preview image nicely scaled */
+#preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}

@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment & secrets
+.env
+
+# Uploaded reports
+uploads/
+
+# VSCode settings
+.vscode/
+
+# Local OS files
+.DS_Store
+Thumbs.db
+EOF

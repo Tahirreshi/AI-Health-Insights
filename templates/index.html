@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Smart Health Advisor</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 min-h-screen text-gray-100">
+
+  <div class="max-w-5xl mx-auto px-6 py-12">
+
+    <!-- HEADER -->
+    <header class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center shadow-lg">
+          <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none">
+            <path d="M6 3v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M6 9a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-extrabold tracking-tight">Smart Health Advisor</h1>
+          <p class="text-sm text-slate-300">Upload your lab image or PDF — get instant insights.</p>
+        </div>
+      </div>
+
+
+    </header>
+
+
+    <!-- MAIN GRID -->
+    <main class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+      <!-- UPLOAD CARD -->
+      <section class="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+        <h2 class="text-lg font-semibold text-teal-300 mb-3">Upload Report</h2>
+        <p class="text-sm text-slate-400 mb-4">Supported: PNG, JPG, JPEG, WEBP, PDF</p>
+
+        <form id="uploadForm" action="/analyze" method="POST" enctype="multipart/form-data" class="space-y-4">
+
+          <label class="block">
+            <input id="fileInput" type="file" name="file" accept=".png,.jpg,.jpeg,.webp,.pdf" required
+              class="w-full text-sm text-slate-200 file:mr-4 file:py-2 file:px-4 
+                     file:rounded-md file:border-0 file:bg-teal-500 file:text-white 
+                     hover:file:bg-teal-600 cursor-pointer" />
+          </label>
+
+          <!-- PREVIEW -->
+          <div id="previewWrap" class="hidden">
+            <div class="mb-2 text-sm text-slate-300">Preview</div>
+            <div id="preview" class="bg-slate-900 rounded-lg border border-slate-700 p-3 
+                                   flex items-center justify-center"></div>
+          </div>
+
+          <!-- ANALYZE BUTTON -->
+          <div class="flex items-center gap-3">
+            <button id="analyzeBtn" type="submit"
+              class="inline-flex items-center gap-3 bg-gradient-to-r from-teal-500 to-cyan-500 
+                     hover:from-teal-600 hover:to-cyan-600 text-slate-900 font-semibold px-5 py-2 
+                     rounded-xl shadow">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                <path d="M3 12h18M12 3v18" stroke="currentColor" stroke-width="1.5" 
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Analyze
+            </button>
+
+            <div id="spinner" class="hidden items-center gap-2 text-sm text-slate-300">
+              <svg class="animate-spin w-5 h-5 text-teal-300" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.15" stroke-width="4"/>
+                <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+              </svg>
+              Analyzing...
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-500">Note: Your file stays on this server only for processing.</p>
+        </form>
+      </section>
+
+
+
+      <!-- HEALTH TIP CARD (RIGHT SIDE) -->
+      <section class="relative group">
+
+        <!-- Outer glowing border -->
+        <div class="absolute -inset-1 bg-gradient-to-r from-teal-500 to-cyan-500 
+                    rounded-3xl opacity-0 group-hover:opacity-40 blur-xl 
+                    transition-all duration-700"></div>
+
+        <!-- Actual card -->
+        <div class="relative bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 
+                    p-6 rounded-3xl shadow-2xl transition-all duration-500 
+                    group-hover:scale-[1.02]">
+
+          <h3 class="text-xl font-bold text-transparent bg-clip-text 
+                       bg-gradient-to-r from-teal-300 to-cyan-300 
+                       mb-4 animate-pulse">
+            Health Tip of the Day
+          </h3>
+
+          <div id="tipBox"
+               class="bg-slate-900/70 border border-slate-700 rounded-xl p-5 shadow-inner 
+                      text-slate-200 text-base leading-relaxed 
+                      opacity-0 translate-y-3 transition-all duration-700">
+              {{ tip }}
+          </div>
+
+          <button id="newTipBtn"
+                  class="mt-5 w-full flex items-center justify-center gap-2 
+                         bg-gradient-to-r from-teal-500 to-cyan-500 
+                         hover:from-teal-600 hover:to-cyan-600 
+                         rounded-xl py-2.5 text-slate-900 font-semibold shadow-lg 
+                         transition-all duration-300 active:scale-95">
+            🔄 Show Another Tip
+          </button>
+
+          <p class="text-xs text-slate-500 mt-4 text-center">
+            Powered by Groq • Fresh & dynamic.
+          </p>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+
+  <!-- SCRIPTS -->
+  <script>
+    // Fade-in slide animation
+    window.onload = () => {
+      const box = document.getElementById("tipBox");
+      setTimeout(() => {
+        box.classList.remove("opacity-0", "translate-y-3");
+      }, 200);
+    };
+
+    // Fetch new tip
+    document.getElementById("newTipBtn").addEventListener("click", async () => {
+      const box = document.getElementById("tipBox");
+      box.classList.add("opacity-0", "translate-y-3");
+
+      await new Promise(r => setTimeout(r, 400));
+
+      const res = await fetch("/get-tip");
+      const data = await res.json();
+      box.textContent = data.tip;
+
+      box.classList.remove("opacity-0", "translate-y-3");
+    });
+
+
+    // FILE PREVIEW + SPINNER
+    const fileInput = document.getElementById('fileInput');
+    const previewWrap = document.getElementById('previewWrap');
+    const preview = document.getElementById('preview');
+    const uploadForm = document.getElementById('uploadForm');
+    const spinner = document.getElementById('spinner');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+
+    fileInput.addEventListener('change', (e) => {
+      preview.innerHTML = '';
+      const f = e.target.files[0];
+      if (!f) { previewWrap.classList.add('hidden'); return; }
+
+      if (f.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        img.className = "max-h-48 object-contain rounded";
+        preview.appendChild(img);
+      } else {
+        const p = document.createElement('div');
+        p.className = "text-sm text-slate-300";
+        p.textContent = f.name;
+        preview.appendChild(p);
+      }
+
+      previewWrap.classList.remove('hidden');
+    });
+
+    uploadForm.addEventListener('submit', () => {
+      analyzeBtn.setAttribute('disabled', 'true');
+      spinner.classList.remove('hidden');
+    });
+  </script>
+
+</body>
+</html>
