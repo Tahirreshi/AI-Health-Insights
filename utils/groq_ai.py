@@ -1,5 +1,5 @@
-import os
 from groq import Groq
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -7,53 +7,56 @@ load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
-def get_health_advice(text):
-    try:
-        prompt = f"""
-        You are a medical expert. Analyze this extracted health report text and 
-        provide safe, simple, clear advice. Do NOT give medication, diagnosis, or 
-        harmful instructions.
+# ---------- ANALYZE REPORT ----------
+def analyze_report(text):
+    prompt = f"""
+You are a medical AI.
 
-        Report:
-        {text}
-        """
+Analyze the lab report and return ONLY valid JSON.
 
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=250,
-            temperature=0.5
-        )
+Format:
+{{
+  "parameters": [
+    {{
+      "name": "parameter",
+      "value": number,
+      "unit": "unit",
+      "reference": "range",
+      "status": "normal or abnormal"
+    }}
+  ],
+  "advice": "short medical advice"
+}}
 
-        if not response or not response.choices:
-            return "Unable to analyze the report, but staying healthy includes hydration, sleep, and balanced meals."
+Lab Report:
+{text}
+"""
 
-        advice = response.choices[0].message.content
-        return advice.strip() if advice else "Keep up healthy habits!"
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{"role": "user", "content": prompt}]
+    )
 
-    except Exception as e:
-        print("\n--- HEALTH ADVICE ERROR ---\n", e)
-        return "Unable to process the report — but remember to drink water and rest well."
+    return response.choices[0].message.content
 
 
-def get_health_tip():
-    try:
-        prompt = "Give one short, unique, actionable health tip (under 15 words)."
+# ---------- CHAT WITH DOCTOR ----------
+def chat_with_doctor(report_text, question):
+    prompt = f"""
+You are a helpful medical AI doctor.
 
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=50,
-            temperature=1.0
-        )
+Patient's lab report:
+{report_text}
 
-        if not response or not response.choices:
-            return "Move for 2 minutes — your body will thank you."
+Patient question:
+{question}
 
-        tip = response.choices[0].message.content
+Answer clearly in simple language.
+"""
 
-        return tip.strip() if isinstance(tip, str) else "Take a deep breath — it relaxes your nervous system."
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{"role": "user", "content": prompt}]
+    )
 
-    except Exception as e:
-        print("\n--- HEALTH TIP ERROR ---\n", e)
-        return "Take short stretch breaks every hour."
+    return response.choices[0].message.content

@@ -1,69 +1,68 @@
+from flask import Flask, render_template, request, session, jsonify
 import os
-from flask import Flask, render_template, request, jsonify
-from werkzeug.utils import secure_filename
+import json
+import re
 
-from utils.ocr_handler import extract_text_from_image
-from utils.pdf_handler import extract_text_from_pdf
-from utils.table_formatter import extract_table, convert_to_table, filter_abnormal
-from utils.groq_ai import get_health_advice, get_health_tip
+from utils.ocr_handler import extract_text
+from utils.groq_ai import analyze_report, chat_with_doctor
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = "uploads"
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app.secret_key = "secret123"
 
-IMG_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.jfif', '.webp')
+UPLOAD_FOLDER = "uploads"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
 @app.route("/")
 def home():
-    tip = get_health_tip() or "Stay healthy and hydrated!"
-    return render_template("index.html", tip=tip)
-
-
-@app.route("/get-tip")
-def get_tip():
-    tip = get_health_tip() or "Move your body today — even gentle stretching helps."
-    return jsonify({"tip": tip})
+    return render_template("index.html")
 
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    uploaded = request.files.get('file')
-    if not uploaded:
-        return "No file uploaded", 400
+    file = request.files["file"]
 
-    # Save file
-    filename = secure_filename(uploaded.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    uploaded.save(filepath)
+    if not file:
+        return "No file uploaded"
 
-    mime = (uploaded.mimetype or "").lower()
-    ext = os.path.splitext(filename)[1].lower()
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+    file.save(filepath)
 
     # Extract text
-    if mime.startswith("image/") or ext in IMG_EXTENSIONS:
-        text_data = extract_text_from_image(filepath)
-    elif mime == "application/pdf" or ext == ".pdf":
-        text_data = extract_text_from_pdf(filepath)
-    else:
-        text_data = f"Unsupported file format: {mime} / {ext}"
+    extracted_text = extract_text(filepath)
+    print("TEXT:\n", extracted_text)
 
-    # AI advice
-    advice = get_health_advice(text_data)
+    # Save for chat
+    session["report_text"] = extracted_text
 
-    # Table extraction
-    rows = extract_table(text_data)
-    table = convert_to_table(rows)
-    abnormal_table = filter_abnormal(table)
+    # AI Analysis
+    ai_result = analyze_report(extracted_text)
+    print("AI RAW:\n", ai_result)
 
-    final_table = abnormal_table if abnormal_table else []
+    # Extract JSON safely
+    try:
+        json_text = re.search(r"\{.*\}", ai_result, re.DOTALL)
+        data = json.loads(json_text.group())
+    except:
+        return "AI response parsing failed"
 
-    return render_template(
-        "result.html",
-        extracted=text_data,
-        table=final_table,
-        advice=advice
-    )
+    table = data.get("parameters", [])
+    advice = data.get("advice", "")
+
+    return render_template("result.html", table=table, advice=advice)
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    question = request.form["question"]
+    report_text = session.get("report_text", "")
+
+    if not report_text:
+        return jsonify({"response": "Upload report first."})
+
+    reply = chat_with_doctor(report_text, question)
+
+    return jsonify({"response": reply})
 
 
 if __name__ == "__main__":

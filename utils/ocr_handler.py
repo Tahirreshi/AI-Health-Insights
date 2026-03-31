@@ -1,38 +1,32 @@
 import pytesseract
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image
+import pdfplumber
+import os
 
-def extract_text_from_image(path):
-    try:
-        # Load image
-        img = Image.open(path)
+def extract_text(file_path):
+    ext = os.path.splitext(file_path)[1].lower()
 
-        # Convert to grayscale
-        img = img.convert("L")
+    if ext in [".png", ".jpg", ".jpeg", ".webp"]:
+        return extract_from_image(file_path)
 
-        # Increase contrast
-        enhancer = ImageEnhance.Contrast(img)
-        img = enhancer.enhance(2.0)   # 2× stronger contrast
+    elif ext == ".pdf":
+        return extract_from_pdf(file_path)
 
-        # Increase sharpness
-        sharpener = ImageEnhance.Sharpness(img)
-        img = sharpener.enhance(2.0)
+    else:
+        return "Unsupported file format"
 
-        # Resize → Tesseract works best on larger images
-        width, height = img.size
-        if width < 1500:  
-            factor = 1500 / width
-            img = img.resize((int(width * factor), int(height * factor)))
 
-        # Optional slight blur (helps with noise)
-        img = img.filter(ImageFilter.MedianFilter())
+def extract_from_image(path):
+    img = Image.open(path).convert("L")
+    text = pytesseract.image_to_string(img)
+    return text
 
-        # Run OCR
-        text = pytesseract.image_to_string(
-            img,
-            config="--psm 6 -c preserve_interword_spaces=1"
-        )
 
-        return text if text.strip() else "No readable text found."
-
-    except Exception as e:
-        return f"OCR Error: {str(e)}"
+def extract_from_pdf(path):
+    text = ""
+    with pdfplumber.open(path) as pdf:
+        for page in pdf.pages:
+            extracted = page.extract_text()
+            if extracted:
+                text += extracted + "\n"
+    return text
