@@ -31,7 +31,7 @@ An intelligent web application that analyzes medical lab reports (PDF/Image) and
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - **Backend:** Flask (Python)
 - **AI Model:** Groq LLM
@@ -39,6 +39,3 @@ An intelligent web application that analyzes medical lab reports (PDF/Image) and
 - **PDF Parsing:** pdfplumber
 - **Frontend:** HTML, Tailwind CSS
 - **Version Control:** Git & GitHub
-
-
-## 📂 Project Structure
